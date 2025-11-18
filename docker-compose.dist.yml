@@ -1,20 +1,22 @@
-version: "3"
+version: "3.9"
 
 services:
+  # RouterOS 6.48.4 - Stable long-term support version
   routeros-6-48:
     image: evilfreelancer/docker-routeros:6.48.4
     restart: unless-stopped
     cap_add:
-      - NET_ADMIN
+      - NET_ADMIN  # Required for network configuration
     devices:
-      - /dev/net/tun
-      - /dev/kvm
+      - /dev/net/tun  # Required for VPN and tunneling
+      - /dev/kvm      # Required for hardware acceleration (QEMU/KVM)
     ports:
-      - "12222:22"
-      - "12223:23"
-      - "18728:8728"
-      - "18729:8729"
+      - "12222:22"    # SSH
+      - "12223:23"    # Telnet
+      - "18728:8728"  # RouterOS API
+      - "18729:8729"  # RouterOS API-SSL
 
+  # RouterOS Latest - Most recent stable version
   routeros-latest:
     image: evilfreelancer/docker-routeros:latest
     restart: unless-stopped
@@ -24,31 +26,44 @@ services:
       - /dev/net/tun
       - /dev/kvm
     ports:
-      - "22222:22"
-      - "22223:23"
-      - "7777:80"
-      - "8728:8728"
-      - "8729:8729"
-      - "28728:8728"
-      - "28729:8729"
+      - "22222:22"    # SSH
+      - "22223:23"    # Telnet
+      - "7777:80"     # HTTP (Webfig)
+      - "8728:8728"   # RouterOS API
+      - "8729:8729"   # RouterOS API-SSL
+      - "28728:8728"  # Alternative API port
+      - "28729:8729"  # Alternative API-SSL port
 
-  routeros-local:
-    image: evilfreelancer/docker-routeros:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun
-      - /dev/kvm
-    ports:
-      - "22222:22"
-      - "22223:23"
-      - "7777:80"
-      - "8728:8728"
-      - "8729:8729"
-      - "28728:8728"
-      - "28729:8729"
-      - "5900:5900"
+  # RouterOS Local Build - Build from local Dockerfile
+  # Uncomment to build and run from source
+  # routeros-local:
+  #   image: evilfreelancer/docker-routeros:latest
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   restart: unless-stopped
+  #   cap_add:
+  #     - NET_ADMIN
+  #   devices:
+  #     - /dev/net/tun
+  #     - /dev/kvm
+  #   ports:
+  #     - "32222:22"    # SSH
+  #     - "32223:23"    # Telnet
+  #     - "7778:80"     # HTTP (Webfig)
+  #     - "5900:5900"   # VNC - for console access
+  #     - "38728:8728"  # RouterOS API
+  #     - "38729:8729"  # RouterOS API-SSL
+
+# Additional ports that can be exposed if needed:
+# - "21:21"         # FTP
+# - "443:443"       # HTTPS
+# - "8291:8291"     # Winbox
+# - "1194:1194"     # OpenVPN (TCP)
+# - "1194:1194/udp" # OpenVPN (UDP)
+# - "1701:1701"     # L2TP
+# - "1723:1723"     # PPTP
+# - "500:500/udp"   # IPSec IKE
+# - "4500:4500/udp" # IPSec NAT-T
+# - "50:50"         # IPSec ESP
+# - "51:51"         # IPSec AH
