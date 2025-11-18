@@ -1,0 +1,156 @@
+# WARNING: This Kubernetes manifest runs a privileged RouterOS lab VM.
+# Do not deploy in production or expose directly to the public internet.
+# This is for home lab / testing clusters only.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: routeros
+  labels:
+    app: routeros
+    component: lab
+spec:
+  replicas: 1  # RouterOS should run as a single instance
+  selector:
+    matchLabels:
+      app: routeros
+  template:
+    metadata:
+      labels:
+        app: routeros
+        component: lab
+    spec:
+      # WARNING: hostNetwork provides direct access to host networking
+      # Only use in trusted lab environments
+      # hostNetwork: true
+      
+      containers:
+      - name: routeros
+        image: evilfreelancer/docker-routeros:latest
+        imagePullPolicy: IfNotPresent
+        
+        # Security Context - WARNING: This runs the container in privileged mode
+        # Required for QEMU/KVM functionality and network device access
+        # Only use in controlled lab environments
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+              - NET_ADMIN  # Required for network configuration
+        
+        # Ports exposed by the container
+        ports:
+        - name: ssh
+          containerPort: 22
+          protocol: TCP
+        - name: winbox
+          containerPort: 8291
+          protocol: TCP
+        - name: api
+          containerPort: 8728
+          protocol: TCP
+        - name: api-ssl
+          containerPort: 8729
+          protocol: TCP
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        - name: vnc
+          containerPort: 5900
+          protocol: TCP
+        
+        # Health check configuration
+        livenessProbe:
+          exec:
+            command:
+            - /routeros_source/healthcheck.sh
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          exec:
+            command:
+            - /routeros_source/healthcheck.sh
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        # Resource limits (adjust based on your lab requirements)
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "2000m"
+        
+        # Volume mounts for device access
+        volumeMounts:
+        - name: dev-kvm
+          mountPath: /dev/kvm
+        - name: dev-net-tun
+          mountPath: /dev/net/tun
+        # Optional: persistent storage for RouterOS data
+        # - name: routeros-data
+        #   mountPath: /routeros
+      
+      # Volumes - WARNING: These mount host devices into the container
+      # Required for KVM acceleration and network tunneling
+      # Only use in trusted lab environments
+      volumes:
+      - name: dev-kvm
+        hostPath:
+          path: /dev/kvm
+          type: CharDevice
+      - name: dev-net-tun
+        hostPath:
+          path: /dev/net/tun
+          type: CharDevice
+      # Optional: persistent volume for RouterOS data
+      # - name: routeros-data
+      #   hostPath:
+      #     path: /data/routeros
+      #     type: DirectoryOrCreate
+      
+      # Node selector (optional) - schedule on nodes with KVM support
+      # nodeSelector:
+      #   feature.node.kubernetes.io/kvm: "true"
+      
+      # Tolerations (optional) - for nodes with specific taints
+      # tolerations:
+      # - key: "lab-only"
+      #   operator: "Equal"
+      #   value: "true"
+      #   effect: "NoSchedule"
+
+---
+# Security and deployment notes:
+#
+# 1. PRIVILEGED MODE: This deployment uses privileged containers which have
+#    elevated permissions. This is required for QEMU/KVM functionality but
+#    should ONLY be used in trusted, isolated lab environments.
+#
+# 2. HOST DEVICES: The deployment mounts /dev/kvm and /dev/net/tun from the
+#    host. Ensure these devices exist on your Kubernetes nodes.
+#
+# 3. SINGLE REPLICA: RouterOS should run as a single instance. Do not scale
+#    this deployment beyond 1 replica.
+#
+# 4. NODE REQUIREMENTS:
+#    - KVM support (/dev/kvm must exist)
+#    - TUN/TAP support (/dev/net/tun must exist)
+#    - Sufficient CPU and memory resources
+#
+# 5. SECURITY POLICIES: This deployment may be blocked by Pod Security
+#    Standards (PSS) or Pod Security Policies (PSP) in restricted mode.
+#    You may need to configure appropriate policies or use a permissive
+#    namespace for lab workloads.
+#
+# 6. NETWORKING: Consider using a dedicated namespace with NetworkPolicies
+#    to isolate this lab workload from production services.
+#
+# 7. PERSISTENT STORAGE: Uncomment the persistent volume sections if you
+#    need RouterOS configuration to survive pod restarts.

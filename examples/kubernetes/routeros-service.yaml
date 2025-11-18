@@ -1,0 +1,160 @@
+# WARNING: This Kubernetes Service exposes RouterOS lab VM ports.
+# Do not expose to the public internet. For home lab / testing only.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: routeros
+  labels:
+    app: routeros
+    component: lab
+spec:
+  type: NodePort  # Use NodePort for lab access, or LoadBalancer if your cluster supports it
+  selector:
+    app: routeros
+  ports:
+  # SSH - Primary management interface
+  - name: ssh
+    port: 22
+    targetPort: 22
+    protocol: TCP
+    nodePort: 30022  # Accessible on any node IP at this port
+  
+  # Winbox - MikroTik GUI management tool
+  - name: winbox
+    port: 8291
+    targetPort: 8291
+    protocol: TCP
+    nodePort: 30291
+  
+  # RouterOS API (unencrypted)
+  - name: api
+    port: 8728
+    targetPort: 8728
+    protocol: TCP
+    nodePort: 30728
+  
+  # RouterOS API-SSL (encrypted) - prefer this over unencrypted API
+  - name: api-ssl
+    port: 8729
+    targetPort: 8729
+    protocol: TCP
+    nodePort: 30729
+  
+  # HTTP - Webfig interface (commented out by default for security)
+  # - name: http
+  #   port: 80
+  #   targetPort: 80
+  #   protocol: TCP
+  #   nodePort: 30080
+  
+  # VNC - Console access (commented out by default)
+  # - name: vnc
+  #   port: 5900
+  #   targetPort: 5900
+  #   protocol: TCP
+  #   nodePort: 30900
+
+---
+# Alternative: ClusterIP Service (internal access only)
+#
+# Use this if you only need to access RouterOS from within the cluster,
+# or if you plan to use an Ingress controller for external access.
+#
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: routeros-internal
+#   labels:
+#     app: routeros
+#     component: lab
+# spec:
+#   type: ClusterIP
+#   selector:
+#     app: routeros
+#   ports:
+#   - name: ssh
+#     port: 22
+#     targetPort: 22
+#     protocol: TCP
+#   - name: winbox
+#     port: 8291
+#     targetPort: 8291
+#     protocol: TCP
+#   - name: api-ssl
+#     port: 8729
+#     targetPort: 8729
+#     protocol: TCP
+
+---
+# Alternative: LoadBalancer Service (for cloud providers)
+#
+# Use this if your cluster supports LoadBalancer services (e.g., cloud providers)
+# WARNING: This will create a public-facing load balancer in cloud environments.
+# Only use with proper firewall rules and security groups!
+#
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: routeros-lb
+#   labels:
+#     app: routeros
+#     component: lab
+#   annotations:
+#     # Cloud-specific annotations for configuring the load balancer
+#     # Example for AWS:
+#     # service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+#     # Example for GCP:
+#     # cloud.google.com/load-balancer-type: "Internal"
+# spec:
+#   type: LoadBalancer
+#   selector:
+#     app: routeros
+#   ports:
+#   - name: ssh
+#     port: 22
+#     targetPort: 22
+#     protocol: TCP
+#   - name: winbox
+#     port: 8291
+#     targetPort: 8291
+#     protocol: TCP
+#   - name: api-ssl
+#     port: 8729
+#     targetPort: 8729
+#     protocol: TCP
+#   # loadBalancerSourceRanges:
+#   #   - 192.168.1.0/24  # Restrict access to specific IP ranges
+
+---
+# Service deployment notes:
+#
+# 1. SERVICE TYPE SELECTION:
+#    - NodePort: Best for home lab clusters, access via node IP:nodePort
+#    - ClusterIP: Internal access only, use with Ingress or port-forward
+#    - LoadBalancer: For cloud providers, creates external load balancer
+#
+# 2. PORT SELECTION:
+#    - Only essential management ports are exposed by default
+#    - Uncomment additional ports only if needed for your testing
+#    - NodePort range: 30000-32767 (configurable in cluster settings)
+#
+# 3. SECURITY CONSIDERATIONS:
+#    - Use firewall rules to restrict access to known IP addresses
+#    - Prefer API-SSL (8729) over unencrypted API (8728)
+#    - Change RouterOS default credentials immediately
+#    - Consider using NetworkPolicies to restrict access
+#
+# 4. ACCESSING THE SERVICE:
+#    - NodePort: <any-node-ip>:<nodePort>
+#    - ClusterIP: Use kubectl port-forward or access from within cluster
+#    - LoadBalancer: Use the external IP assigned by cloud provider
+#
+# 5. PORT FORWARDING (alternative to NodePort):
+#    kubectl port-forward service/routeros 2222:22
+#    kubectl port-forward service/routeros 8291:8291
+#    kubectl port-forward service/routeros 8729:8729
+#
+# 6. NETWORK POLICIES:
+#    Consider creating NetworkPolicies to restrict which pods/namespaces
+#    can access the RouterOS service for additional security.

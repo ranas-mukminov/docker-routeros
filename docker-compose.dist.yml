@@ -15,6 +15,12 @@ services:
       - "12223:23"    # Telnet
       - "18728:8728"  # RouterOS API
       - "18729:8729"  # RouterOS API-SSL
+    healthcheck:
+      test: ["/routeros_source/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
 
   # RouterOS Latest - Most recent stable version
   routeros-latest:
@@ -33,6 +39,12 @@ services:
       - "8729:8729"   # RouterOS API-SSL
       - "28728:8728"  # Alternative API port
       - "28729:8729"  # Alternative API-SSL port
+    healthcheck:
+      test: ["/routeros_source/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
 
   # RouterOS Local Build - Build from local Dockerfile
   # Uncomment to build and run from source

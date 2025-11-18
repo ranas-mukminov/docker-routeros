@@ -1,0 +1,89 @@
+# WARNING: This Docker Compose configuration runs a privileged RouterOS lab VM.
+# Do not deploy in production or expose directly to the public internet.
+# This profile exposes many ports for comprehensive lab testing.
+
+version: "3.9"
+
+services:
+  routeros-lab:
+    image: evilfreelancer/docker-routeros:latest
+    restart: unless-stopped
+    
+    # WARNING: privileged mode grants extended permissions to the container
+    # Only use in trusted, isolated lab environments
+    privileged: true
+    
+    cap_add:
+      - NET_ADMIN  # Required for network configuration and routing
+    
+    devices:
+      - /dev/net/tun  # Required for VPN and tunneling functionality
+      - /dev/kvm      # Required for hardware acceleration (QEMU/KVM)
+    
+    # Lab profile: extensive port exposure for testing all RouterOS services
+    ports:
+      # Management and Console
+      - "22:22"       # SSH - primary management interface
+      - "23:23"       # Telnet - legacy management
+      - "80:80"       # HTTP - Webfig interface
+      - "443:443"     # HTTPS - Webfig SSL
+      - "8291:8291"   # Winbox - MikroTik GUI management tool
+      - "5900:5900"   # VNC - console access
+      
+      # RouterOS API
+      - "8728:8728"   # RouterOS API (unencrypted)
+      - "8729:8729"   # RouterOS API-SSL (encrypted)
+      
+      # VPN Services
+      - "1194:1194"       # OpenVPN TCP
+      - "1194:1194/udp"   # OpenVPN UDP
+      - "1701:1701"       # L2TP
+      - "1723:1723"       # PPTP
+      
+      # IPSec
+      - "500:500/udp"     # IPSec IKE
+      - "4500:4500/udp"   # IPSec NAT-T
+      - "50:50"           # IPSec ESP (protocol 50)
+      - "51:51"           # IPSec AH (protocol 51)
+      
+      # RADIUS
+      - "1812:1812/udp"   # RADIUS Authentication
+      - "1813:1813/udp"   # RADIUS Accounting
+      
+      # Additional Services
+      - "21:21"       # FTP
+      - "8080:8080"   # HTTP Proxy
+      - "8900:8900"   # RouterOS Bandwidth Test Server
+      
+      # User Manager (if enabled)
+      - "2021:2021"   # User Manager HTTP
+      - "2022:2022"   # User Manager HTTPS
+      - "2023:2023"   # User Manager SSH
+      - "2027:2027"   # User Manager API
+    
+    healthcheck:
+      test: ["/routeros_source/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    
+    # Optional: mount host directory for persistent data
+    # volumes:
+    #   - ./routeros-data:/routeros
+    
+    # Optional: resource limits (recommended for lab environments)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2'
+    #       memory: 1G
+    #     reservations:
+    #       cpus: '1'
+    #       memory: 512M
+
+# Security reminder:
+# - This configuration is for lab and testing purposes only
+# - Never expose these ports to untrusted networks
+# - Use firewall rules to restrict access to authorized hosts only
+# - Consider using a separate isolated network for RouterOS testing

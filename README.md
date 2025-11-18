@@ -21,6 +21,10 @@ maintained by [Ranas Mukminov](https://github.com/ranas-mukminov).
 
 ## Getting started
 
+> **GitHub Copilot**: When extending this repo, prefer adding **examples** for other runtimes
+> (Docker Compose profiles, Podman, Kubernetes, Nomad) under the `examples/` directory
+> instead of changing core image behaviour.
+
 ### Pull image from Docker Hub
 
 ```bash
@@ -101,6 +105,78 @@ The RouterOS VM exposes multiple ports, commonly mapped from the container:
 - **PPTP**: 1723
 
 Adjust the port mappings in `docker run` or `docker-compose` according to your needs.
+
+## Other runtimes (examples)
+
+This repository includes example configurations for running RouterOS across different container runtimes and orchestration platforms. All examples are designed for **controlled lab environments only** and should not be deployed in production or exposed to the public internet.
+
+### Docker Compose Profiles
+
+We provide multiple Docker Compose profiles for different use cases:
+
+- **[examples/docker-compose.lab.yml](examples/docker-compose.lab.yml)** - Full-featured lab profile
+  - Exposes extensive ports for comprehensive RouterOS testing
+  - Includes VPN, IPSec, RADIUS, and all management interfaces
+  - Ideal for development and full-stack testing scenarios
+
+- **[examples/docker-compose.minimal.yml](examples/docker-compose.minimal.yml)** - Minimal security-focused profile
+  - Exposes only essential management ports (SSH, Winbox, API)
+  - Reduced attack surface for focused testing
+  - Recommended starting point for most lab scenarios
+
+### Podman
+
+For those who prefer Podman as a Docker alternative:
+
+- **[examples/podman/routeros-podman.md](examples/podman/routeros-podman.md)**
+  - Complete guide for running RouterOS with Podman
+  - Includes rootless Podman considerations and limitations
+  - Compatible with `podman-compose` for multi-container setups
+
+**Note**: `/dev/kvm` access and full hardware acceleration may be limited in rootless Podman configurations.
+
+### Kubernetes
+
+For container orchestration in home lab clusters:
+
+- **[examples/kubernetes/routeros-deployment.yaml](examples/kubernetes/routeros-deployment.yaml)** - Kubernetes Deployment
+  - Includes privileged security context for QEMU/KVM
+  - Device mounts for hardware acceleration
+  - Health checks using liveness and readiness probes
+
+- **[examples/kubernetes/routeros-service.yaml](examples/kubernetes/routeros-service.yaml)** - Kubernetes Service
+  - NodePort configuration for lab cluster access
+  - Alternative LoadBalancer and ClusterIP examples
+  - Port forwarding instructions
+
+**Note**: This deployment uses privileged containers and may be blocked by Pod Security Standards. Only deploy in lab namespaces with appropriate policies.
+
+### Nomad
+
+For HashiCorp Nomad orchestration:
+
+- **[examples/nomad/routeros.nomad.hcl](examples/nomad/routeros.nomad.hcl)**
+  - Complete Nomad job specification
+  - Service registration and health checks
+  - Resource allocation and node constraints
+  - Integration with Consul for service discovery
+
+**Note**: Requires Nomad configuration to allow privileged containers (`plugin.docker.config.allow_privileged = true`).
+
+### Security Considerations for Alternative Runtimes
+
+All runtime examples follow these security principles:
+
+- **Explicit configuration**: All uses of `privileged`, `hostPath`, `devices`, and `cap_add` are clearly marked and commented
+- **Minimal ports**: Default configurations expose only essential management ports
+- **Lab-only warnings**: Every example includes clear warnings about lab-only usage
+- **Access control**: Recommendations for firewall rules and network isolation
+
+For more details, see the [examples/README.md](examples/README.md) which includes:
+- Comprehensive security guidelines for each runtime
+- Troubleshooting guides
+- Configuration customization patterns
+- Best practices for lab deployments
 
 ## Security notes
 

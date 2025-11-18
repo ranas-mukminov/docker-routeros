@@ -32,4 +32,10 @@ RUN wget "$ROUTEROS_PATH" -O "/routeros_source/${ROUTEROS_IMAGE}.zip" && \
 # Copy script to routeros folder
 ADD ["./scripts", "/routeros_source"]
 
+# Health check to verify RouterOS is running and responsive
+# Checks SSH port (22) availability every 30 seconds
+# Waits 60 seconds before first check to allow RouterOS to boot
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD ["/routeros_source/healthcheck.sh"]
+
 ENTRYPOINT ["/routeros_source/entrypoint.sh"]
