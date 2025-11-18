@@ -1,0 +1,76 @@
+# WARNING: This Docker Compose configuration runs a privileged RouterOS lab VM.
+# Do not deploy in production or expose directly to the public internet.
+# This is a minimal profile exposing only essential management ports.
+
+version: "3.9"
+
+services:
+  routeros-minimal:
+    image: evilfreelancer/docker-routeros:latest
+    restart: unless-stopped
+    
+    cap_add:
+      - NET_ADMIN  # Required for network configuration
+    
+    devices:
+      - /dev/net/tun  # Required for VPN and tunneling
+      - /dev/kvm      # Required for hardware acceleration (QEMU/KVM)
+    
+    # Minimal profile: only essential management ports exposed
+    ports:
+      - "2222:22"       # SSH - secure shell access
+      - "8291:8291"     # Winbox - MikroTik GUI management
+      - "8728:8728"     # RouterOS API (unencrypted)
+      - "8729:8729"     # RouterOS API-SSL (encrypted)
+      # - "5900:5900"   # VNC - uncomment if console access needed
+    
+    healthcheck:
+      test: ["/routeros_source/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    
+    # Optional: mount host directory for persistent data
+    # volumes:
+    #   - ./routeros-data:/routeros
+
+# Additional ports available but commented out for security:
+# Uncomment only the specific ports you need for your testing
+
+# Web Interface:
+#   - "80:80"       # HTTP - Webfig
+#   - "443:443"     # HTTPS - Webfig SSL
+
+# Console Access:
+#   - "23:23"       # Telnet (insecure, not recommended)
+#   - "5900:5900"   # VNC
+
+# VPN Services:
+#   - "1194:1194"       # OpenVPN TCP
+#   - "1194:1194/udp"   # OpenVPN UDP
+#   - "1701:1701"       # L2TP
+#   - "1723:1723"       # PPTP
+
+# IPSec:
+#   - "500:500/udp"     # IPSec IKE
+#   - "4500:4500/udp"   # IPSec NAT-T
+#   - "50:50"           # IPSec ESP
+#   - "51:51"           # IPSec AH
+
+# RADIUS:
+#   - "1812:1812/udp"   # RADIUS Authentication
+#   - "1813:1813/udp"   # RADIUS Accounting
+
+# Other Services:
+#   - "21:21"       # FTP
+#   - "8080:8080"   # HTTP Proxy
+#   - "8900:8900"   # Bandwidth Test Server
+
+# Security recommendations:
+# 1. Only expose ports you actively need for your testing
+# 2. Use host firewall rules to restrict access to specific IP addresses
+# 3. Change default credentials immediately after first login
+# 4. Consider using SSH key authentication instead of passwords
+# 5. Use API-SSL (8729) instead of unencrypted API (8728) when possible
+# 6. Keep RouterOS updated to the latest stable version
